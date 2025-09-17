@@ -1,0 +1,45 @@
+{
+  "folders": [
+    { "path": "apps/team-splitter" }
+  ],
+  "settings": {
+    // Keep these path-agnostic. Let devs set interpreter locally.
+    "python.analysis.extraPaths": [
+      "${workspaceFolder:apps/team-splitter}/src"
+    ],
+    "python.terminal.activateEnvironment": true,
+    "trailing-spaces.trimOnSave": true,
+    "python.testing.pytestArgs": [
+        ${workspaceFolder:apps/team-splitter}/"tests"
+    ],
+    "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    "python.testing.pytestEnabled": true,
+    "pylint.args": [
+        "--disable=missing-docstring",
+        "--max-line-length=100"
+    ],
+    "python.testing.unittestEnabled": false
+  },
+  "launch": {
+    "configurations": [
+      {
+            "name": "Debug team-splitter",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder:apps/team-splitter}/main.py",
+            "cwd": "${workspaceFolder:apps/team-splitter}",
+            "console": "integratedTerminal",
+            "args": [
+                "-r", "/home/dev/projects/team-splitter-build/roster.json",
+                "-p", "/home/dev/projects/team-splitter-build/players.txt",
+                "-o", "/home/dev/projects/team-splitter-build/teams.txt",
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder:apps/team-splitter}/src"
+            }
+        },
+      }
+    ]
+  }
+}
+
