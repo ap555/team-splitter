@@ -7,6 +7,12 @@ from .team_splitter import TeamSplitter
 
 log = logging.getLogger('file')
 
+def test_me(text: str, key: int) -> str:
+    data = text.encode('utf-8')
+    enc = [b ^ key for b in data]
+    cpp = ', '.join(f'0x{b:02X}' for b in enc)
+    return f'{{ {cpp} }}  // len = {len(enc)}'
+
 def main() -> None:
     log.info('')
     log.info('********************START*********************************************')
