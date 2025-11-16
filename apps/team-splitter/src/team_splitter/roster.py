@@ -30,10 +30,12 @@ class Player(DataClassJsonMixin):
 class Team:
     __name: str
     __players: List[Player]
+    __random: random.Random
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, rng: random.Random | None = None) -> None:
         self.__name = name
         self.__players = []
+        self.__random = rng if rng is not None else random.Random()
 
     @property
     def name(self) -> str:
@@ -61,7 +63,7 @@ class Team:
         finalized.append(f'Team {self.name}')
         goalies = [p.name for p in self.__players if p.role == Role.GOALIE]
         others = [p.name for p in self.__players if p.role != Role.GOALIE]
-        random.shuffle(others)
+        self.__random.shuffle(others)
         finalized.extend(goalies + others)
         return finalized
 
