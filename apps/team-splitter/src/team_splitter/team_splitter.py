@@ -2,7 +2,7 @@ import logging
 import random
 import re
 from collections import defaultdict
-from typing import Final, List, final
+from typing import Final, List, Optional, final
 
 from .roster import Player, Role, Team
 
@@ -16,9 +16,11 @@ class TeamSplitter:
     MIN_PLAYER_NUMBER_FOR_4_TEAMS: Final = 24
     TEAM_COLORS: Final[list[str]] = ['Red', 'Blue', 'White', 'Green']
     __roster: List[Player]
+    __random: random.Random
 
-    def __init__(self, roster: List[Player]) -> None:
+    def __init__(self, roster: List[Player], seed: Optional[int] = None) -> None:
         self.__roster = roster
+        self.__random = random.Random(seed)
 
     def __read_player_names(self, file_path: str) -> List[str]:
         """Read unique player names from a file, stripping leading numbers and dots."""
@@ -59,7 +61,7 @@ class TeamSplitter:
         if goalie_count > 0:
             num_goalie_rounds = (goalie_count + num_teams - 1) // num_teams
 
-        goalie_pick_order: List[List[int]] = TeamSplitter.generate_pick_order(
+        goalie_pick_order: List[List[int]] = self.__generate_pick_order(
             num_teams, num_goalie_rounds)
         for pick_order in goalie_pick_order:
             for team_idx in pick_order:
@@ -71,7 +73,7 @@ class TeamSplitter:
         field_player_count = len(non_goalies)
         num_player_rounds = (field_player_count + num_teams - 1) // num_teams
 
-        player_pick_order: List[List[int]] = TeamSplitter.generate_pick_order(
+        player_pick_order: List[List[int]] = self.__generate_pick_order(
             num_teams, num_player_rounds)
         for pick_order in player_pick_order:
             for team_idx in pick_order:
@@ -95,14 +97,14 @@ class TeamSplitter:
                     f.write(f'{s}\n')
                 f.write("\n")
 
-    @staticmethod
-    def generate_pick_order(num_teams: int, num_rounds: int) -> List[List[int]]:
+    def __generate_pick_order(self, num_teams: int, num_rounds: int) -> List[List[int]]:
         """
         Generate a combined random + snake draft order:
         - For odd-numbered rounds (0-based), use a random shuffle of teams.
         - For even-numbered rounds, use the reverse of the previous (snake) order.
 
-        Returns a list of pick orders, one list per round, where each list contains team indices (0..num_teams-1).
+        Returns a list of pick orders, one list per round, where each list
+        contains team indices (0..num_teams-1).
         """
         orders: List[List[int]] = []
         teams = list(range(num_teams))
@@ -116,25 +118,41 @@ class TeamSplitter:
             else:
                 # Random order for this round
                 current = teams.copy()
-                random.shuffle(current)
+                self.__random.shuffle(current)
             orders.append(current)
             use_snake = not use_snake
 
         return orders
 
-    def split_and_save(self, file_path: str, output_file: str) -> None:
+    def split_teams(self, file_path: str) -> List[Team]:
         """
-        Public method: read input names, validate, split teams, and save output.
+        Public method: read input names, validate, and split into teams.
+
+        Args:
+            file_path: Path to file containing player names
+
+        Returns:
+            List of Team objects with assigned players
         """
         names = self.__read_player_names(file_path)
         players = self.__validate_players(names)
         num_teams = 4 if len(
             players) >= TeamSplitter.MIN_PLAYER_NUMBER_FOR_4_TEAMS else 2
         teams = self.__split_into_teams(players, num_teams)
-        self.__print_teams(teams)
+        return teams
+
+    def __save_teams(self, teams: List[Team], output_file: str) -> None:
+        """Save teams to output file."""
         final_teams: List[str] = []
         for team in teams:
             final_teams.append(team.get_finalized())
-
         self.__save_finalized(final_teams, output_file)
+
+    def split_and_save(self, file_path: str, output_file: str) -> None:
+        """
+        Public method: read input names, validate, split teams, and save output.
+        """
+        teams = self.split_teams(file_path)
+        self.__print_teams(teams)
+        self.__save_teams(teams, output_file)
         print(f'Done. Teams are saved as {output_file}')
