@@ -116,3 +116,16 @@ def test_no_seed_still_works(roster_epl: List[Player], player_list: str) -> None
     assert len(teams) == 2
     assert teams[0].size() + teams[1].size() == 16
     assert teams[0].role_count(Role.GOALIE) + teams[1].role_count(Role.GOALIE) == 2
+
+
+def test_team_size_difference_rule(roster_epl: List[Player], player_list: str) -> None:
+    """Test that team sizes differ by at most 1 player."""
+    splitter = TeamSplitter(roster_epl, seed=42)
+    teams = splitter.split_teams(player_list)
+
+    team_sizes = [team.size() for team in teams]
+    min_size = min(team_sizes)
+    max_size = max(team_sizes)
+
+    # Team size difference must not exceed 1
+    assert max_size - min_size <= 1

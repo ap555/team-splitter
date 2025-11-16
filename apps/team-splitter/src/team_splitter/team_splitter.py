@@ -47,6 +47,21 @@ class TeamSplitter:
         players_sorted = sorted(validated, key=lambda p: p.skill, reverse=True)
         return players_sorted
 
+    def __validate_team_balance(self, teams: List[Team]) -> None:
+        """Validate that team sizes differ by at most 1 player."""
+        if not teams:
+            return
+
+        team_sizes = [team.size() for team in teams]
+        min_size = min(team_sizes)
+        max_size = max(team_sizes)
+
+        if max_size - min_size > 1:
+            raise ValueError(
+                f'Team size imbalance: sizes range from {min_size} to {max_size}. '
+                f'Difference must not exceed 1 player.'
+            )
+
     def __split_into_teams(self, players: List[Player], num_teams: int) -> List[Team]:
         grouped: dict[Role, List[Player]] = defaultdict(list)
         for p in players:
@@ -81,6 +96,7 @@ class TeamSplitter:
                     break
                 teams[team_idx].add_player(non_goalies.pop(0))
 
+        self.__validate_team_balance(teams)
         return teams
 
     def __print_teams(self, teams: List[Team]) -> None:
