@@ -52,7 +52,7 @@ class TeamSplitter:
         for p in players:
             grouped[p.role].append(p)
 
-        teams: List[Team] = [Team(TeamSplitter.TEAM_COLORS[colorIdx])
+        teams: List[Team] = [Team(TeamSplitter.TEAM_COLORS[colorIdx], self.__random)
                              for colorIdx in range(num_teams)]
 
         num_goalie_rounds = 0
