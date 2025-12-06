@@ -1,7 +1,10 @@
+import logging
 from typing import Final, List, Tuple, Optional
 
 from .roster import Player, Team
 from .metrics import Metrics
+
+log = logging.getLogger(__name__)
 
 
 class RoleBalancer:
@@ -19,9 +22,16 @@ class RoleBalancer:
         Iteratively improve team balance by swapping players.
         Stops when no swap improves the balance score or max iterations reached.
         """
-        for _ in range(self.MAX_ITER):
+        log.info('Starting role-based rebalancing')
+        iteration = 0
+
+        for iteration in range(self.MAX_ITER):
             current_metrics = Metrics(self.__teams)
             current_score = self.__calculate_score(current_metrics)
+
+            log.info('Iteration %d: Current score=%.2f (skill_diff=%d, def_diff=%d, striker_diff=%d)',
+                     iteration + 1, current_score, current_metrics.skill_diff,
+                     current_metrics.defender_diff, current_metrics.striker_diff)
 
             best_swap = self.__find_best_global_swap(current_score)
 
@@ -32,9 +42,23 @@ class RoleBalancer:
                 t2.add_player(p1)
                 t2.remove_player(p2)
                 t1.add_player(p2)
+
+                new_metrics = Metrics(self.__teams)
+                new_score = self.__calculate_score(new_metrics)
+
+                log.info('  SWAP: %s (%s, skill=%d) <-> %s (%s, skill=%d)',
+                         t1.name, p1.name, p1.skill, t2.name, p2.name, p2.skill)
+                log.info('  New score=%.2f (skill_diff=%d, def_diff=%d, striker_diff=%d)',
+                         new_score, new_metrics.skill_diff,
+                         new_metrics.defender_diff, new_metrics.striker_diff)
             else:
                 # No improvement found, we are done
+                log.info('No beneficial swap found. Rebalancing complete after %d iterations.',
+                         iteration + 1)
                 break
+
+        if iteration == self.MAX_ITER - 1:
+            log.info('Reached maximum iterations (%d). Stopping rebalancing.', self.MAX_ITER)
 
         return self.__teams
 

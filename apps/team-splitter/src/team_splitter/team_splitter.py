@@ -83,26 +83,72 @@ class TeamSplitter:
         field_player_count = len(non_goalies)
         num_player_rounds = (field_player_count + num_teams - 1) // num_teams
 
+        log.info('Starting field player distribution via snake draft')
+        log.info('Total field players: %d, Rounds: %d', field_player_count, num_player_rounds)
+
         player_pick_order: List[List[int]] = self.__generate_pick_order(
             num_teams, num_player_rounds)
-        for pick_order in player_pick_order:
+        for round_idx, pick_order in enumerate(player_pick_order):
+            is_final_round = (round_idx == num_player_rounds - 1)
+            remaining_players = len(non_goalies)
+
+            # For final round: if remaining players < num_teams, pick by lowest skill
+            if is_final_round and remaining_players < num_teams:
+                sorted_teams = sorted(
+                    enumerate(teams),
+                    key=lambda t: t[1].total_skill()
+                )
+                pick_order = [idx for idx, _ in sorted_teams]
+                log.info('Round %d (final, %d players left): Pick order by skill %s',
+                         round_idx + 1, remaining_players,
+                         [teams[idx].name for idx in pick_order])
+            else:
+                team_names = [teams[idx].name for idx in pick_order]
+                log.info('Round %d: Pick order %s', round_idx + 1, team_names)
+
             for team_idx in pick_order:
                 if not non_goalies:
                     break
-                teams[team_idx].add_player(non_goalies.pop(0))
+                player = non_goalies.pop(0)
+                teams[team_idx].add_player(player)
+                log.info('  %s picks %s (skill=%d, role=%s)',
+                         teams[team_idx].name, player.name,
+                         player.skill, player.role.name)
+
+            # Log team skills after this round
+            team_skills = ', '.join([f'{t.name}={t.total_skill()}' for t in teams])
+            log.info('  After round %d: Team skills [%s]', round_idx + 1, team_skills)
+
+        # Log teams after snake rounds complete
+        log.info('Teams after snake draft rounds:')
+        for team in teams:
+            log.info('%s', str(team))
 
         # Distribute goalies based on team size (asc) and skill (asc)
         goalies = grouped[Role.GOALIE]
+        log.info('Starting goalie distribution')
+        log.info('Total goalies: %d', len(goalies))
+
+        goalie_round = 0
         while goalies:
+            goalie_round += 1
             # Sort teams: smallest size first, then lowest total skill
             sorted_teams = sorted(
                 enumerate(teams),
                 key=lambda t: (t[1].size(), t[1].total_skill())
             )
+            team_order = [f'{idx}({teams[idx].name},size={teams[idx].size()},skill={teams[idx].total_skill()})'
+                          for idx, _ in sorted_teams]
+            log.info('Goalie round %d: Team order (by size,skill) %s',
+                     goalie_round, team_order)
+
             for team_idx, _ in sorted_teams:
                 if not goalies:
                     break
-                teams[team_idx].add_player(goalies.pop(0))
+                goalie = goalies.pop(0)
+                teams[team_idx].add_player(goalie)
+                log.info('  Team %d (%s) gets goalie %s (skill=%d)',
+                         team_idx, teams[team_idx].name, goalie.name, goalie.skill)
 
         return teams
 
