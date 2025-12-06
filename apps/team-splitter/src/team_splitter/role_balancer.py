@@ -65,9 +65,8 @@ class RoleBalancer:
         best_new_score = current_score
 
         # Iterate through all unique pairs of teams
-        for i in range(len(self.__teams)):
+        for i, t1 in enumerate(self.__teams):
             for j in range(i + 1, len(self.__teams)):
-                t1 = self.__teams[i]
                 t2 = self.__teams[j]
 
                 # Try all player swaps between these two teams

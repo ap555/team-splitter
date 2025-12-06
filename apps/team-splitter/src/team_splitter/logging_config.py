@@ -6,9 +6,9 @@ from pathlib import Path
 
 def initialize_logging():
     localappdata_path = os.getenv('LOCALAPPDATA') if platform.system(
-    ) == "Windows" else os.path.join(Path.home(), '.local')
-    company_name = '828'
-    package_name = 'team_splitter'
+    ) == 'Windows' else os.path.join(Path.home(), '.local')
+    company_name = 'we828'
+    package_name = 'team-splitter'
 
     log_folder = Path(localappdata_path) / company_name / package_name
     if not log_folder.exists():
