@@ -1,11 +1,13 @@
-from typing import Dict, Final, List, Tuple
+from typing import Final, List, Tuple, Optional
 
-from .roster import Player, Role, Team
+from .roster import Player, Team
 from .metrics import Metrics
 
 
 class RoleBalancer:
-    MAX_ITER: Final = 25
+    MAX_ITER: Final = 100
+    DEFENDER_IMBALANCE_PENALTY: Final = 15
+    STRIKER_IMBALANCE_PENALTY: Final = 10
 
     __teams: List[Team]
 
@@ -13,73 +15,85 @@ class RoleBalancer:
         self.__teams = teams
 
     def balance(self) -> List[Team]:
-        max_rounds: int = 100
-        no_improvement_count = 0
+        """
+        Iteratively improve team balance by swapping players.
+        Stops when no swap improves the balance score or max iterations reached.
+        """
+        for _ in range(self.MAX_ITER):
+            current_metrics = Metrics(self.__teams)
+            current_score = self.__calculate_score(current_metrics)
 
-        for _ in range(max_rounds):
-            t1, t2, _ = Metrics.team_pair_by_max_score_diff(self.__teams)
-            best_swap = self.__find_best_swap(t1, t2)
+            best_swap = self.__find_best_global_swap(current_score)
 
-            if best_swap is not None:
-                p1, p2 = best_swap
-                # Execute swap
+            if best_swap:
+                # Apply the best swap found
+                t1, t2, p1, p2 = best_swap
                 t1.remove_player(p1)
                 t2.add_player(p1)
                 t2.remove_player(p2)
                 t1.add_player(p2)
-
-                no_improvement_count = 0
-
             else:
-                no_improvement_count += 1
-
-            if no_improvement_count >= 3:
+                # No improvement found, we are done
                 break
 
         return self.__teams
 
-    def __find_best_swap(self, team_a: Team, team_b: Team) -> Tuple[Player, Player] | None:
+    def __calculate_score(self, metrics: Metrics) -> float:
         """
-        Find the single best player swap between two teams that improves balance.
-
-        Args:
-            team_a: First team
-            team_b: Second team
-
-        Returns:
-            Tuple of (player_from_a, player_from_b) or None if no improving swap exists
+        Calculate the balance score. Lower is better.
+        score = skill_diff + (def_penalty * 15) + (striker_penalty * 10)
         """
-        assert(team_a in self.__teams)
-        assert(team_b in self.__teams)
+        skill_diff = metrics.skill_diff
 
-        current_score = Metrics.team_pair_score(team_a, team_b)
+        # Penalties apply if difference > 1
+        def_diff = metrics.defender_diff
+        def_penalty = max(0, def_diff - 1)
 
+        striker_diff = metrics.striker_diff
+        striker_penalty = max(0, striker_diff - 1)
+
+        return (skill_diff * 1.0) + \
+               (def_penalty * self.DEFENDER_IMBALANCE_PENALTY) + \
+               (striker_penalty * self.STRIKER_IMBALANCE_PENALTY)
+
+    def __find_best_global_swap(self, current_score: float) -> Optional[Tuple[Team, Team, Player, Player]]:
+        """
+        Find the single best swap across all team pairs that improves the score.
+        Returns (team1, team2, player1, player2) or None.
+        """
         best_swap = None
-        best_score = current_score
+        best_new_score = current_score
 
-        # Try all possible swaps
-        for player_a in team_a.players:
-            for player_b in team_b.players:
-                # Simulate swap
-                team_a.remove_player(player_a)
-                team_b.add_player(player_a)
-                team_b.remove_player(player_b)
-                team_a.add_player(player_b)
+        # Iterate through all unique pairs of teams
+        for i in range(len(self.__teams)):
+            for j in range(i + 1, len(self.__teams)):
+                t1 = self.__teams[i]
+                t2 = self.__teams[j]
 
-                # Calculate new score with fresh metrics
-                new_score = Metrics.team_pair_score(team_a, team_b)
+                # Try all player swaps between these two teams
+                for p1 in t1.players:
+                    for p2 in t2.players:
+                        # Optimization: Skip if swapping same role and similar skill (optional, but speeds up)
+                        # But for now, let's be exhaustive to be safe.
 
-                # Track best improvement
-                if new_score < best_score:
-                    best_score = new_score
-                    best_swap = (player_a, player_b)
+                        # Simulate swap
+                        t1.remove_player(p1)
+                        t2.add_player(p1)
+                        t2.remove_player(p2)
+                        t1.add_player(p2)
 
-                # Undo swap
-                team_a.remove_player(player_b)
-                team_b.add_player(player_b)
-                team_b.remove_player(player_a)
-                team_a.add_player(player_a)
+                        # Check new score
+                        new_metrics = Metrics(self.__teams)
+                        new_score = self.__calculate_score(new_metrics)
+
+                        if new_score < best_new_score:
+                            best_new_score = new_score
+                            best_swap = (t1, t2, p1, p2)
+
+                        # Revert swap
+                        t1.remove_player(p2)
+                        t2.add_player(p2)
+                        t2.remove_player(p1)
+                        t1.add_player(p1)
 
         return best_swap
-
-

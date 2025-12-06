@@ -20,6 +20,7 @@ class Metrics:
         self.__teams = teams
         self.__pairwise_skill = {}
         self.__pairwise_role = {}
+        self.__role_target = {}
 
         self.__compute_pairwise()
 
@@ -61,7 +62,8 @@ class Metrics:
                 # Role deltas
                 delta_roles: Dict[Role, int] = {}
                 for role in Role:
-                    delta_roles[role] = abs(t1.role_count(role) - t2.role_count(role))
+                    delta_roles[role] = abs(
+                        t1.role_count(role) - t2.role_count(role))
                 self.__pairwise_role[(t1, t2)] = delta_roles
 
     def __compute_min_player_skill(self) -> int:
@@ -83,7 +85,6 @@ class Metrics:
         target = round(avg)
 
         return target
-
 
     @property
     def max_skill_diff_between_any_teams(self) -> int:
@@ -136,6 +137,31 @@ class Metrics:
 
         return (result_teams[0], result_teams[1], max_delta)
 
+    @property
+    def skill_diff(self) -> int:
+        """Global maximum difference in total skill between any two teams."""
+        return self._max_skill_delta
+
+    @property
+    def defender_diff(self) -> int:
+        """Global maximum difference in defender count between any two teams."""
+        max_diff = 0
+        for _, deltas in self.__pairwise_role.items():
+            diff = deltas.get(Role.DEFENDER, 0)
+            if diff > max_diff:
+                max_diff = diff
+        return max_diff
+
+    @property
+    def striker_diff(self) -> int:
+        """Global maximum difference in striker count between any two teams."""
+        max_diff = 0
+        for _, deltas in self.__pairwise_role.items():
+            diff = deltas.get(Role.STRIKER, 0)
+            if diff > max_diff:
+                max_diff = diff
+        return max_diff
+
     @staticmethod
     def team_pair_score(team_one: Team, team_two: Team) -> float:
         # Calculate role-weighted score for each team
@@ -153,7 +179,6 @@ class Metrics:
 
         return balance_score
 
-
     @staticmethod
     def team_pair_by_max_score_diff(teams: list[Team]) -> Tuple[Team, Team, float]:
         best_score = float('inf')
@@ -167,4 +192,3 @@ class Metrics:
 
         assert best_pair is not None, 'Need at least 2 teams to find worst pair'
         return best_pair
-
