@@ -1,3 +1,4 @@
+from team_splitter.version import __version__
 import argparse
 import logging
 
@@ -16,7 +17,7 @@ def test_me(text: str, key: int) -> str:
 def main() -> None:
     log.info('')
     log.info('********************START*********************************************')
-    log.info('%s, version %s, Copyright(C) %s', 'Team Splitter', '0.1.0', 'we828')
+    log.info('%s, version %s, Copyright(C) %s', 'Team Splitter', __version__, 'we828')
 
     parser = argparse.ArgumentParser(description='Split players into 2 or 4 teams')
     parser.add_argument('-r','--roster', help='The roster of all players with skill.')

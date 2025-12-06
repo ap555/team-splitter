@@ -1,20 +1,23 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=61.0", "setuptools-scm>=8.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "team-splitter"
-version = "0.1.2"
+dynamic = ["version"]
 description = "Balanced team splitter"
 authors = [
   { name = "ap555", email = "ap555@example.com" }
 ]
 readme = "README.md"
 license = { file = "LICENSE" }
-dependencies = []
+dependencies = ["setuptools-scm>=8.0"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+
+[tool.setuptools.dynamic]
+version = { attr = "team_splitter.version.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
