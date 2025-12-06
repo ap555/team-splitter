@@ -18,10 +18,17 @@ class TeamSplitter:
     TEAM_COLORS: Final[list[str]] = ['Red', 'Blue', 'White', 'Green']
     __roster: List[Player]
     __random: random.Random
+    __seed: int
 
     def __init__(self, roster: List[Player], seed: Optional[int] = None) -> None:
         self.__roster = roster
-        self.__random = random.Random(seed)
+        self.__seed = seed if seed is not None else random.randint(0, 2**32 - 1)
+        self.__random = random.Random(self.__seed)
+        log.info('Using seed: %d', self.__seed)
+
+    @property
+    def seed(self) -> int:
+        return self.__seed
 
     def __read_player_names(self, file_path: str) -> List[str]:
         """Read unique player names from a file, stripping leading numbers and dots."""
@@ -71,20 +78,7 @@ class TeamSplitter:
         teams: List[Team] = [Team(TeamSplitter.TEAM_COLORS[colorIdx], self.__random)
                              for colorIdx in range(num_teams)]
 
-        num_goalie_rounds = 0
-        goalie_group = grouped[Role.GOALIE]
-        goalie_count = len(goalie_group)
-        if goalie_count > 0:
-            num_goalie_rounds = (goalie_count + num_teams - 1) // num_teams
-
-        goalie_pick_order: List[List[int]] = self.__generate_pick_order(
-            num_teams, num_goalie_rounds)
-        for pick_order in goalie_pick_order:
-            for team_idx in pick_order:
-                if not goalie_group:
-                    break
-                teams[team_idx].add_player(goalie_group.pop(0))
-
+        # Distribute field players first using snake draft
         non_goalies = [p for p in players if p.role != Role.GOALIE]
         field_player_count = len(non_goalies)
         num_player_rounds = (field_player_count + num_teams - 1) // num_teams
@@ -97,7 +91,19 @@ class TeamSplitter:
                     break
                 teams[team_idx].add_player(non_goalies.pop(0))
 
-        self.__validate_team_size_balance(teams)
+        # Distribute goalies based on team size (asc) and skill (asc)
+        goalies = grouped[Role.GOALIE]
+        while goalies:
+            # Sort teams: smallest size first, then lowest total skill
+            sorted_teams = sorted(
+                enumerate(teams),
+                key=lambda t: (t[1].size(), t[1].total_skill())
+            )
+            for team_idx, _ in sorted_teams:
+                if not goalies:
+                    break
+                teams[team_idx].add_player(goalies.pop(0))
+
         return teams
 
     def __print_teams(self, teams: List[Team]) -> None:
@@ -160,6 +166,7 @@ class TeamSplitter:
         # Rebalance teams
         balancer = RoleBalancer(teams)
         teams = balancer.balance()
+        self.__validate_team_size_balance(teams)
 
         return teams
 
