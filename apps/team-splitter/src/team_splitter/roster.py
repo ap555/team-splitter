@@ -45,8 +45,11 @@ class Team:
     def players(self) -> List[Player]:
         return self.__players
 
-    def skill(self) -> int:
+    def total_skill(self) -> int:
         return sum(p.skill for p in self.__players)
+
+    def skill_by_role(self, role: Role) -> int:
+        return sum(p.skill for p in self.__players if p.role == role)
 
     def size(self):
         return len(self.__players)
@@ -57,6 +60,15 @@ class Team:
     def add_player(self, player: Player) -> None:
         assert player not in self.__players
         self.__players.append(player)
+        self.__sort_players()
+
+    def remove_player(self, player: Player) -> None:
+        assert player in self.__players
+        self.__players.remove(player)
+
+    def __sort_players(self) -> None:
+        """Sort players with goalies first, then by skill descending."""
+        self.__players.sort(key=lambda p: (0 if p.role == Role.GOALIE else 1, -p.skill))
 
     def get_finalized(self) -> List[str]:
         finalized: List[str] = []
@@ -68,7 +80,7 @@ class Team:
         return finalized
 
     def __str__(self) -> str:
-        s: str = f'Team {self.name}, total skill: {self.skill()}\n'
+        s: str = f'Team {self.name}, total skill: {self.total_skill()}\n'
         for player in self.__players:
             s += str(player)+'\n'
         return s

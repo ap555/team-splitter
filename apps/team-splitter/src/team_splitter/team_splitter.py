@@ -4,6 +4,7 @@ import re
 from collections import defaultdict
 from typing import Final, List, Optional, final
 
+from .role_balancer import RoleBalancer
 from .roster import Player, Role, Team
 
 log = logging.getLogger('file')
@@ -47,7 +48,7 @@ class TeamSplitter:
         players_sorted = sorted(validated, key=lambda p: p.skill, reverse=True)
         return players_sorted
 
-    def __validate_team_balance(self, teams: List[Team]) -> None:
+    def __validate_team_size_balance(self, teams: List[Team]) -> None:
         """Validate that team sizes differ by at most 1 player."""
         if not teams:
             return
@@ -78,26 +79,56 @@ class TeamSplitter:
 
         goalie_pick_order: List[List[int]] = self.__generate_pick_order(
             num_teams, num_goalie_rounds)
+        r0_order: List[int] = []
         for pick_order in goalie_pick_order:
             for team_idx in pick_order:
                 if not goalie_group:
                     break
                 teams[team_idx].add_player(goalie_group.pop(0))
+                r0_order.append(team_idx)
 
         non_goalies = [p for p in players if p.role != Role.GOALIE]
         field_player_count = len(non_goalies)
         num_player_rounds = (field_player_count + num_teams - 1) // num_teams
 
-        player_pick_order: List[List[int]] = self.__generate_pick_order(
-            num_teams, num_player_rounds)
+        player_pick_order: List[List[int]] = []
+        round_idx = 0
+
+        while round_idx <= num_player_rounds:
+            if round_idx == 0:
+                player_pick_order.append(r0_order)
+            elif round_idx == 1:
+                # R1: Goalie-less teams in random order
+                teams_with_goalies = set(r0_order)
+                teams_without_goalies = [i for i in range(num_teams) if i not in teams_with_goalies]
+                self.__random.shuffle(teams_without_goalies)
+                player_pick_order.append(teams_without_goalies)
+            elif round_idx == 2:
+                # R2: Reverse(R0) + Reverse(R1)
+                r2_order = list(reversed(player_pick_order[0])) + list(reversed(player_pick_order[1]))
+                player_pick_order.append(r2_order)
+            else:
+                # R3+: Use existing generate_pick_order for alternating random/snake
+                remaining_rounds = num_player_rounds - 2
+                remaining_orders = self.__generate_pick_order(num_teams, remaining_rounds)
+                player_pick_order.extend(remaining_orders)
+                break
+
+            round_idx += 1
+
         for pick_order in player_pick_order:
             for team_idx in pick_order:
                 if not non_goalies:
                     break
                 teams[team_idx].add_player(non_goalies.pop(0))
 
-        self.__validate_team_balance(teams)
+        self.__validate_team_size_balance(teams)
+        balancer = RoleBalancer(teams)
+        #teams = balancer.balance()
+        self.__validate_team_size_balance(teams)
+
         return teams
+
 
     def __print_teams(self, teams: List[Team]) -> None:
         """Print teams with index, name, role, and skill."""
