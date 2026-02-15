@@ -26,6 +26,8 @@ def main() -> None:
     args = parser.parse_args()
 
     roster = load_players(args.roster)
+    log.info('Loaded roster: %d players', len(roster))
     #save_players(roster, args.roster)
+
     splitter = TeamSplitter(roster)
     splitter.split_and_save(args.players, args.output)

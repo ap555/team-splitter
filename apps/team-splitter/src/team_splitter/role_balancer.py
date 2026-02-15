@@ -1,7 +1,7 @@
 import logging
 from typing import Final, List, Tuple, Optional
 
-from .roster import Player, Team
+from .roster import Player, Role, Team
 from .metrics import Metrics
 
 log = logging.getLogger(__name__)
@@ -96,8 +96,10 @@ class RoleBalancer:
                 # Try all player swaps between these two teams
                 for p1 in t1.players:
                     for p2 in t2.players:
-                        # Optimization: Skip if swapping same role and similar skill (optional, but speeds up)
-                        # But for now, let's be exhaustive to be safe.
+                        # Never swap a goalie with a non-goalie to preserve
+                        # goalie distribution across teams
+                        if (p1.role == Role.GOALIE) != (p2.role == Role.GOALIE):
+                            continue
 
                         # Simulate swap
                         t1.remove_player(p1)

@@ -205,6 +205,7 @@ class TeamSplitter:
         """
         names = self.__read_player_names(file_path)
         players = self.__validate_players(names)
+        log.info('Number of actual players: %d', len(names))
         num_teams = 4 if len(
             players) >= TeamSplitter.MIN_PLAYER_NUMBER_FOR_4_TEAMS else 2
         teams = self.__split_into_teams(players, num_teams)
