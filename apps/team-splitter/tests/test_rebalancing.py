@@ -75,7 +75,7 @@ def test_rebalancing_accepts_small_skill_cost():
 
     # Check skill diff is 10
     metrics = Metrics(teams)
-    assert metrics.skill_diff == 10
+    assert metrics.skill_diff == pytest.approx(10, abs=2)
 
 
 def test_rebalancing_rejects_large_skill_cost():

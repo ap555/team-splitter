@@ -1,14 +1,17 @@
-from typing import Dict, List, Tuple
+from typing import Dict, Final, List, Tuple
 
 from .roster import Role, Team
 
 
 class Metrics:
-    DEFENDER_IMPORTANCE_COEF = 1.3
-    STRIKER_IMPORTANCE_COEF = 1.2
+    DEFENDER_IMPORTANCE_COEF: Final = 1.3
+    STRIKER_IMPORTANCE_COEF: Final = 1.2
+    DEFENDER_IMBALANCE_PENALTY: Final = 15
+    STRIKER_IMBALANCE_PENALTY: Final = 10
+    GOALIE_ROTATION_PENALTY_FACTOR: Final = 0.05
 
     __teams: List[Team]
-    __pairwise_skill: Dict[Tuple[Team, Team], int]
+    __pairwise_skill: Dict[Tuple[Team, Team], float]
     __pairwise_role: Dict[Tuple[Team, Team], Dict[Role, int]]
     __max_role_delta: int
     __role_for_max_delta: Role
@@ -25,13 +28,13 @@ class Metrics:
         self.__compute_pairwise()
 
         # Find global max skill delta and corresponding teams
-        max_skill: int = -1
+        max_skill: float = -1
         teams_for_skill: Tuple[Team, Team] = (teams[0], teams[0])
         for (t1, t2), ds in self.__pairwise_skill.items():
             if ds > max_skill:
                 max_skill = ds
                 teams_for_skill = (t1, t2)
-        self._max_skill_delta: int = max_skill
+        self._max_skill_delta: float = max_skill
         self._teams_for_max_skill: Tuple[Team, Team] = teams_for_skill
 
         # Find global max role delta, the role, and the teams
@@ -56,7 +59,9 @@ class Metrics:
     def __compute_pairwise(self) -> None:
         for idx, t1 in enumerate(self.__teams):
             for t2 in self.__teams[idx + 1:]:
-                delta_skill = abs(t1.total_skill() - t2.total_skill())
+                delta_skill = abs(
+                    Metrics.effective_skill(t1) - Metrics.effective_skill(t2)
+                )
                 self.__pairwise_skill[(t1, t2)] = delta_skill
 
                 # Role deltas
@@ -87,7 +92,7 @@ class Metrics:
         return target
 
     @property
-    def max_skill_diff_between_any_teams(self) -> int:
+    def max_skill_diff_between_any_teams(self) -> float:
         '''Global maximum difference in total skill between any two teams.'''
         return self._max_skill_delta
 
@@ -138,7 +143,7 @@ class Metrics:
         return (result_teams[0], result_teams[1], max_delta)
 
     @property
-    def skill_diff(self) -> int:
+    def skill_diff(self) -> float:
         """Global maximum difference in total skill between any two teams."""
         return self._max_skill_delta
 
@@ -163,6 +168,18 @@ class Metrics:
         return max_diff
 
     @staticmethod
+    def effective_skill(team: Team) -> float:
+        """Return team skill adjusted for goalie rotation penalty.
+
+        Teams without a dedicated goalie lose field effectiveness
+        because players must rotate into goal.
+        """
+        if team.has_goalie():
+            return float(team.total_skill())
+        avg = team.avg_field_player_skill()
+        return team.total_skill() - avg * Metrics.GOALIE_ROTATION_PENALTY_FACTOR
+
+    @staticmethod
     def team_pair_score(team_one: Team, team_two: Team) -> float:
         # Calculate role-weighted score for each team
         team_one_role_score = (team_one.skill_by_role(Role.DEFENDER) * Metrics.DEFENDER_IMPORTANCE_COEF
@@ -171,8 +188,8 @@ class Metrics:
                                + team_two.skill_by_role(Role.STRIKER) * Metrics.STRIKER_IMPORTANCE_COEF)
 
         # Total score for each team
-        team_one_total_score = team_one_role_score + team_one.total_skill()
-        team_two_total_score = team_two_role_score + team_two.total_skill()
+        team_one_total_score = team_one_role_score + Metrics.effective_skill(team_one)
+        team_two_total_score = team_two_role_score + Metrics.effective_skill(team_two)
 
         # Final balance score is the absolute difference
         balance_score = abs(team_one_total_score - team_two_total_score)

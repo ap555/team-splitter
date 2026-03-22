@@ -57,6 +57,17 @@ class Team:
     def role_count(self, role: Role) -> int:
         return sum(p.role == role for p in self.__players)
 
+    def has_goalie(self) -> bool:
+        """Return whether the team has at least one dedicated goalie."""
+        return any(p.role == Role.GOALIE for p in self.__players)
+
+    def avg_field_player_skill(self) -> float:
+        """Return average skill of non-goalie players."""
+        field_players = [p for p in self.__players if p.role != Role.GOALIE]
+        if not field_players:
+            return 0.0
+        return sum(p.skill for p in field_players) / len(field_players)
+
     def add_player(self, player: Player) -> None:
         assert player not in self.__players
         self.__players.append(player)

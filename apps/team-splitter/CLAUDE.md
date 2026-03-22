@@ -81,7 +81,7 @@ This document contains critical information about working with this codebase. Fo
   - Squash only when merging to `main`; keep granular history on the feature branch
 - Practical workflow
   1. Create or reference an issue if it exists
-  2. `git checkout -b feat/issue-123-description`
+  2. `git checkout -b feat/123-description`
   3. Commit in small, logical increments
   4. `git push` and open a draft PR early
   5. Convert to ready PR when functionally complete and tests pass
