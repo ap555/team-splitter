@@ -1,3 +1,4 @@
+from .metrics import Metrics
 from .role_balancer import RoleBalancer
 import logging
 import random
@@ -96,7 +97,7 @@ class TeamSplitter:
             if is_final_round and remaining_players < num_teams:
                 sorted_teams = sorted(
                     enumerate(teams),
-                    key=lambda t: t[1].total_skill()
+                    key=lambda t: Metrics.effective_skill(t[1])
                 )
                 pick_order = [idx for idx, _ in sorted_teams]
                 log.info('Round %d (final, %d players left): Pick order by skill %s',

@@ -9,8 +9,6 @@ log = logging.getLogger(__name__)
 
 class RoleBalancer:
     MAX_ITER: Final = 100
-    DEFENDER_IMBALANCE_PENALTY: Final = 15
-    STRIKER_IMBALANCE_PENALTY: Final = 10
 
     __teams: List[Team]
 
@@ -77,8 +75,8 @@ class RoleBalancer:
         striker_penalty = max(0, striker_diff - 1)
 
         return (skill_diff * 1.0) + \
-               (def_penalty * self.DEFENDER_IMBALANCE_PENALTY) + \
-               (striker_penalty * self.STRIKER_IMBALANCE_PENALTY)
+               (def_penalty * Metrics.DEFENDER_IMBALANCE_PENALTY) + \
+               (striker_penalty * Metrics.STRIKER_IMBALANCE_PENALTY)
 
     def __find_best_global_swap(self, current_score: float) -> Optional[Tuple[Team, Team, Player, Player]]:
         """
