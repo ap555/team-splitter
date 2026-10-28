@@ -1,9 +1,9 @@
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, final
 
-from dataclasses_json import DataClassJsonMixin
+from dataclasses_json import DataClassJsonMixin, config
 
 
 class Role(Enum):
@@ -21,6 +21,7 @@ class Player(DataClassJsonMixin):
     name: str
     role: Role
     skill: int
+    id: str | None = field(default=None, metadata=config(exclude=lambda value: value is None))
 
     def __str__(self) -> str:
         return f'{self.name} {self.role.value} {self.skill}'

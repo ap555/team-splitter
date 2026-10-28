@@ -2,6 +2,7 @@ from team_splitter.version import __version__
 import argparse
 import logging
 
+from .logging_config import initialize_logging
 from .roster import load_players, save_players
 from .team_splitter import TeamSplitter
 
@@ -15,6 +16,7 @@ def test_me(text: str, key: int) -> str:
     return f'{{ {cpp} }}  // len = {len(enc)}'
 
 def main() -> None:
+    initialize_logging()
     log.info('')
     log.info('********************START*********************************************')
     log.info('%s, version %s, Copyright(C) %s', 'Team Splitter', __version__, 'we828')

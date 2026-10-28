@@ -206,7 +206,12 @@ class TeamSplitter:
         """
         names = self.__read_player_names(file_path)
         players = self.__validate_players(names)
-        log.info('Number of actual players: %d', len(names))
+        return self.split_players(players)
+
+    def split_players(self, players: List[Player]) -> List[Team]:
+        """Split resolved players, preserving their IDs and duplicate display names."""
+        players = sorted(players, key=lambda player: player.skill, reverse=True)
+        log.info('Number of actual players: %d', len(players))
         num_teams = 4 if len(
             players) >= TeamSplitter.MIN_PLAYER_NUMBER_FOR_4_TEAMS else 2
         teams = self.__split_into_teams(players, num_teams)

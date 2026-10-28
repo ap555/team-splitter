@@ -11,7 +11,8 @@ authors = [
 ]
 readme = "README.md"
 license = { file = "LICENSE" }
-dependencies = ["setuptools-scm>=8.0"]
+requires-python = ">=3.10"
+dependencies = ["setuptools-scm>=8.0", "dataclasses-json>=0.6,<0.7"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}

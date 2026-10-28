@@ -121,3 +121,45 @@ See LICENSE file for details.
 ## Author
 
 **we828** - [ap555](https://github.com/ap555)
+
+## Website integration (FC-28)
+
+Run `python -m team_splitter.json_api` with one UTF-8 JSON object on stdin.
+The response is JSON on stdout; invalid input returns an `error` and exit code 2.
+Install the package dependencies first. Python 3.10 or newer is required.
+
+```json
+{
+  "roster": [{"id": "player:42", "name": "Player Name", "skill": 85, "role": "M"}],
+  "squad": [{"id": "player:42", "name": "Player Name"}],
+  "unknown_policy": "mean",
+  "seed": 42
+}
+```
+
+Supply the complete rated roster and all registered players in `squad`. IDs are
+nonempty strings, not display names. Use stable distinct IDs such as `player:42`
+and `guest:123` for database players and admin-added registrations. Namesakes are
+preserved. Roles use `G`, `D`, `M`, `S`.
+
+`unknown_policy` defaults to `error`, which rejects missing roster IDs. `mean`
+assigns unknown players role `M` and the arithmetic mean skill of rated players
+in the registered squad only, rounded down to an integer. Roster skills must be
+integers. If no registered
+player is rated, mean handling fails explicitly. Duplicate IDs are rejected.
+Below six registered players the response is `{"teams": []}`. Otherwise it
+contains the seed and teams, each with name and players (ID, name, role, skill).
+The optional integer seed makes repeated requests reproducible.
+
+The caller owns change detection and persistence: generate after a successful
+registration addition/removal, store the result for that game day, and clear it
+below six players. Do not regenerate on page views. Publish results only if the
+squad still matches the snapshot used for generation; discard stale concurrent
+results. On failure, mark the split unavailable rather than showing old teams.
+
+For deployment, install a reviewed, pinned GitHub commit into a virtual
+environment outside the webroot. Do not fetch GitHub during page requests or
+reference a developer's local checkout. The PHP boundary must convert cp1251
+names to UTF-8 and pass JSON via stdin, without interpolating names into shell
+commands. Website database storage, change hooks, and visibility controls are
+implemented by the consuming website, not this package.
