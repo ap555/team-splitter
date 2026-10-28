@@ -2,10 +2,11 @@
 
 import argparse
 import json
+import random
 import sys
 from typing import Any
 
-from .roster import Player, Role
+from .roster import Player, Role, Team
 from .team_splitter import TeamSplitter
 
 
@@ -37,8 +38,6 @@ def split_request(request: dict[str, Any]) -> dict[str, Any]:
     if unknown and policy == 'error':
         raise ValueError(f'Unknown player IDs: {", ".join(unknown)}')
     skills = [known[player_id].skill for player_id in ids if player_id in known]
-    if unknown and not skills:
-        raise ValueError('Cannot calculate mean without rated registered players')
     average = sum(skills) // len(skills) if skills else 0
     players = [known[player_id] if player_id in known else
                Player(name, Role.MIDFIELDER, average, player_id)
@@ -47,7 +46,15 @@ def split_request(request: dict[str, Any]) -> dict[str, Any]:
     if seed is not None and (isinstance(seed, bool) or not isinstance(seed, int)):
         raise ValueError('seed must be an integer')
     splitter = TeamSplitter(players, seed=seed)
-    teams = splitter.split_players(players)
+    if not skills:
+        rng = random.Random(splitter.seed)
+        rng.shuffle(players)
+        count = 4 if len(players) >= TeamSplitter.MIN_PLAYER_NUMBER_FOR_4_TEAMS else 2
+        teams = [Team(color, rng) for color in TeamSplitter.TEAM_COLORS[:count]]
+        for index, player in enumerate(players):
+            teams[index % count].add_player(player)
+    else:
+        teams = splitter.split_players(players)
     return {'seed': splitter.seed, 'teams': [
         {'name': team.name, 'players': [
             {'id': p.id, 'name': p.name, 'role': p.role.value, 'skill': p.skill}

@@ -146,7 +146,10 @@ preserved. Roles use `G`, `D`, `M`, `S`.
 assigns unknown players role `M` and the arithmetic mean skill of rated players
 in the registered squad only, rounded down to an integer. Roster skills must be
 integers. If no registered
-player is rated, mean handling fails explicitly. Duplicate IDs are rejected.
+player is rated, mean mode shuffles the squad randomly into teams whose sizes
+differ by at most one, using the optional seed for reproducibility. These unrated
+players carry placeholder skill 0 and role M; no balancing is applied. Error mode
+still rejects unknown players. Duplicate IDs are rejected.
 Below six registered players the response is `{"teams": []}`. Otherwise it
 contains the seed and teams, each with name and players (ID, name, role, skill).
 The optional integer seed makes repeated requests reproducible.

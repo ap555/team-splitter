@@ -36,10 +36,27 @@ def test_unknown_default_is_error():
         split_request(data)
 
 
-def test_mean_requires_known_players():
-    data = request()
+@pytest.mark.parametrize('count', [6, 7, 23, 24, 25])
+def test_all_guests_random_split(count):
+    data = request(count)
     data.update(roster=[], unknown_policy='mean')
-    with pytest.raises(ValueError, match='Cannot calculate mean'):
+    result = split_request(data)
+    teams = result['teams']
+    assert len(teams) == (4 if count >= 24 else 2)
+    sizes = [len(team['players']) for team in teams]
+    assert max(sizes) - min(sizes) <= 1
+    ids = [p['id'] for team in teams for p in team['players']]
+    assert len(ids) == count
+    assert set(ids) == {str(i) for i in range(count)}
+    assert result == split_request(data)
+    data['seed'] = 99
+    assert result['teams'] != split_request(data)['teams']
+
+
+def test_all_guests_error_policy():
+    data = request()
+    data['roster'] = []
+    with pytest.raises(ValueError, match='Unknown player'):
         split_request(data)
 
 
