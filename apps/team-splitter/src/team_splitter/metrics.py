@@ -8,7 +8,7 @@ class Metrics:
     STRIKER_IMPORTANCE_COEF: Final = 1.2
     DEFENDER_IMBALANCE_PENALTY: Final = 15
     STRIKER_IMBALANCE_PENALTY: Final = 10
-    GOALIE_ROTATION_PENALTY_FACTOR: Final = 0.05
+    GOALIE_ROTATION_PENALTY_FACTOR: Final = 0.00
 
     __teams: List[Team]
     __pairwise_skill: Dict[Tuple[Team, Team], float]
